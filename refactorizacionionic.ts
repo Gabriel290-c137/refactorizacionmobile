@@ -1,61 +1,80 @@
-@Component({
-  selector: 'app-p',
-  templateUrl: './p.component.html',
-})
-export class PComponent implements OnInit {
-  i: any[] = [];
-  t = 0;
-  l = false;
-  s = '';
+import { Component, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 
-  constructor(private h: HttpClient) {}
+@Component({
+  selector: 'app-product-list',
+  templateUrl: './product-list.component.html',
+})
+export class ProductListComponent implements OnInit {
+  products: any[] = []; // Almacena la lista de productos
+  totalPrice: number = 0; // Almacena el precio total de los productos seleccionados
+  isLoading: boolean = false; // Indica si se están cargando datos
+  statusMessage: string = ''; // Almacena mensajes de estado para el usuario
+
+  constructor(private http: HttpClient) {}
 
   ngOnInit() {
-    this.l = true;
-    this.h.get('https://api.example.com/data').subscribe(
-      (d: any) => {
-        this.i = d;
-        this.c();
-        this.l = false;
+    this.loadProducts();
+  }
+
+  /**
+   * Carga los productos desde la API y actualiza la lista
+   */
+  loadProducts() {
+    this.isLoading = true;
+    this.http.get<any[]>('https://api.example.com/data').subscribe(
+      (data) => {
+        this.products = data;
+        this.calculateTotal();
+        this.isLoading = false;
       },
-      (e) => {
-        console.log('Error', e);
-        this.s = 'Error al cargar datos';
-        this.l = false;
+      (error) => {
+        console.error('Error al cargar productos', error);
+        this.statusMessage = 'Error al cargar datos';
+        this.isLoading = false;
       }
     );
   }
 
-  a(p) {
-    this.i.push(p);
-    this.c();
+  /**
+   * Agrega un nuevo producto a la lista y recalcula el total
+   */
+  addProduct(product: any) {
+    this.products.push(product);
+    this.calculateTotal();
   }
 
-  r(idx) {
-    this.i.splice(idx, 1);
-    this.c();
+  /**
+   * Elimina un producto de la lista por índice y recalcula el total
+   */
+  removeProduct(index: number) {
+    this.products.splice(index, 1);
+    this.calculateTotal();
   }
 
-  c() {
-    this.t = 0;
-    for (let j = 0; j < this.i.length; j++) {
-      if (this.i[j].a === true) {
-        this.t += this.i[j].p * this.i[j].q;
-      }
-    }
+  /**
+   * Calcula el precio total de los productos seleccionados
+   */
+  calculateTotal() {
+    this.totalPrice = this.products.reduce((total, product) => {
+      return product.isSelected ? total + product.price * product.quantity : total;
+    }, 0);
   }
 
-  sv() {
-    this.l = true;
-    this.h.post('https://api.example.com/save', this.i).subscribe(
+  /**
+   * Guarda la lista de productos en la API
+   */
+  saveProducts() {
+    this.isLoading = true;
+    this.http.post('https://api.example.com/save', this.products).subscribe(
       () => {
-        this.s = 'Guardado correctamente';
-        this.l = false;
+        this.statusMessage = 'Guardado correctamente';
+        this.isLoading = false;
       },
-      (e) => {
-        this.s = 'Error al guardar';
-        console.log('Error', e);
-        this.l = false;
+      (error) => {
+        console.error('Error al guardar', error);
+        this.statusMessage = 'Error al guardar';
+        this.isLoading = false;
       }
     );
   }
